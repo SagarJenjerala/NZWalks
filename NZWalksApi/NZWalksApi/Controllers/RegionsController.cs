@@ -1,12 +1,7 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using NZWalksApi.Data;
-using NZWalksApi.Models.Domain;
 using NZWalksApi.Models.Dto;
 using NZWalksApi.Repositories;
-using System.Text.RegularExpressions;
-using Region = NZWalksApi.Models.Dto.Region;
 
 namespace NZWalksApi.Controllers
 {
@@ -51,10 +46,35 @@ namespace NZWalksApi.Controllers
         [HttpPost]
         public async Task<IActionResult> AddAsync(AddRegionRequest addRegionRequest)
         {
+            if (!ValidateAddRegionRequest(addRegionRequest))
+            {
+                return BadRequest(ModelState);
+            }
+
             var region = mapper.Map<Models.Domain.Region>(addRegionRequest);
             var newRegion = await regionRepositoty.AddAsync(region);
             var resultDto = mapper.Map<Models.Dto.Region>(newRegion);
             return CreatedAtAction(nameof(GetRegionAsync), new { id = resultDto.Id }, resultDto);
+        }
+
+        private bool ValidateAddRegionRequest(AddRegionRequest addRegionRequest)
+        {
+            if (addRegionRequest is null)
+            {
+                ModelState.AddModelError(nameof(addRegionRequest), $"Add region data is required.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(addRegionRequest.Code))
+            {
+                ModelState.AddModelError(nameof(addRegionRequest), $"{nameof(addRegionRequest.Code)} cannot be null or empty or white space.");
+            }
+
+            if (ModelState.ErrorCount > 0)
+            {
+                return false;
+            }
+            return true;
         }
 
         [HttpDelete]
