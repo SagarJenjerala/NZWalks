@@ -26,8 +26,6 @@ namespace NZWalksApi.Controllers
         [Authorize(Roles = "reader")]
         public async Task<IActionResult> GetAllRegionsAsync()
         {
-            throw new ArgumentException("my exception");
-
             var regions = await regionRepositoty.GetAllAsync();
             var regionsDTo = mapper.Map<List<Models.Dto.Region>>(regions);
 
