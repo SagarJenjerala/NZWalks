@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NZWalksApi.Models.Dto;
 using NZWalksApi.Repositories;
@@ -11,14 +12,18 @@ namespace NZWalksApi.Controllers
     {
         private readonly IRegionRepository regionRepositoty;
         private readonly IMapper mapper;
-        public RegionsController(IRegionRepository repositoty, IMapper map)
+        private readonly ITokenHandler tokenHandler;
+
+        public RegionsController(IRegionRepository repositoty, IMapper map, ITokenHandler tokenHandler)
         {
             regionRepositoty = repositoty;
             mapper = map;
+            this.tokenHandler = tokenHandler;
         }
 
 
         [HttpGet]
+        [Authorize(Roles = "reader")]
         public async Task<IActionResult> GetAllRegionsAsync()
         {
             var regions = await regionRepositoty.GetAllAsync();
@@ -30,6 +35,7 @@ namespace NZWalksApi.Controllers
         [HttpGet]
         [Route("{id:guid}")]
         [ActionName("GetRegionAsync")]
+        [Authorize(Roles = "reader")]
         public async Task<IActionResult> GetRegionAsync(Guid id)
         {
             var region = await regionRepositoty.GetAsync(id);
@@ -44,6 +50,7 @@ namespace NZWalksApi.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "writer")]
         public async Task<IActionResult> AddAsync(AddRegionRequest addRegionRequest)
         {
             //if (!ValidateAddRegionRequest(addRegionRequest))
@@ -57,28 +64,9 @@ namespace NZWalksApi.Controllers
             return CreatedAtAction(nameof(GetRegionAsync), new { id = resultDto.Id }, resultDto);
         }
 
-        private bool ValidateAddRegionRequest(AddRegionRequest addRegionRequest)
-        {
-            if (addRegionRequest is null)
-            {
-                ModelState.AddModelError(nameof(addRegionRequest), $"Add region data is required.");
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(addRegionRequest.Code))
-            {
-                ModelState.AddModelError(nameof(addRegionRequest), $"{nameof(addRegionRequest.Code)} cannot be null or empty or white space.");
-            }
-
-            if (ModelState.ErrorCount > 0)
-            {
-                return false;
-            }
-            return true;
-        }
-
         [HttpDelete]
         [Route("{id:guid}")]
+        [Authorize(Roles = "writer")]
         public async Task<IActionResult> DeleteAsync(Guid id)
         {
             // Get region from DB
@@ -102,6 +90,7 @@ namespace NZWalksApi.Controllers
 
         [HttpPut]
         [Route("{Id:guid}")]
+        [Authorize(Roles = "writer")]
         public async Task<IActionResult> UpdateAsync([FromRoute] Guid Id, [FromBody] UpdateRegionRequest updateRegionRequest)
         {
             var updateRegion = mapper.Map<Models.Domain.Region>(updateRegionRequest);
@@ -115,6 +104,25 @@ namespace NZWalksApi.Controllers
 
             var resultDto = mapper.Map<Models.Dto.Region>(result);
             return Ok(resultDto);
+        }
+        private bool ValidateAddRegionRequest(AddRegionRequest addRegionRequest)
+        {
+            if (addRegionRequest is null)
+            {
+                ModelState.AddModelError(nameof(addRegionRequest), $"Add region data is required.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(addRegionRequest.Code))
+            {
+                ModelState.AddModelError(nameof(addRegionRequest), $"{nameof(addRegionRequest.Code)} cannot be null or empty or white space.");
+            }
+
+            if (ModelState.ErrorCount > 0)
+            {
+                return false;
+            }
+            return true;
         }
     }
 }
